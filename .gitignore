@@ -1,0 +1,10 @@
+# Nix build artifacts
+result
+result-*
+.direnv/
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
