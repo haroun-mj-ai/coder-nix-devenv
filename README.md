@@ -1,3 +1,4 @@
+# !!FEEL FREE TO FORK IN FACT IT IS ENCOURAGED!!
 # coder-nix-devenv
 
 Reproducible dev environment for our Coder workspaces, defined as a Nix flake.
