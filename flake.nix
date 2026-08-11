@@ -61,7 +61,7 @@
         };
 
         # Installs the whole toolchain into the user's nix profile:
-        #   nix profile add github:<owner>/coder-nix-devenv
+        #   nix profile add github:haroun-mj-ai/coder-nix-devenv
         packages.default = pkgs.buildEnv {
           name = "coder-devenv";
           paths = toolchain;
@@ -69,7 +69,7 @@
 
         # Expose nixpkgs-with-unfree so callers can pull any single package,
         # unfree included, without needing --impure:
-        #   nix shell github:<owner>/coder-nix-devenv#terraform
+        #   nix shell github:haroun-mj-ai/coder-nix-devenv#terraform
         legacyPackages = pkgs;
       });
 }

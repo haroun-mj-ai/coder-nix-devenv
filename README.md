@@ -11,7 +11,7 @@ You need Nix with flakes enabled. If you're in a Coder workspace from our
 template, Nix is already there.
 
 ```bash
-git clone https://github.com/<owner>/coder-nix-devenv.git
+git clone https://github.com/haroun-mj-ai/coder-nix-devenv.git
 cd coder-nix-devenv
 nix develop
 ```
@@ -22,13 +22,13 @@ installed globally, and nothing is left behind when you exit.
 To install the toolchain into your user profile permanently instead:
 
 ```bash
-nix profile add github:<owner>/coder-nix-devenv
+nix profile add github:haroun-mj-ai/coder-nix-devenv
 ```
 
 To grab a single tool without installing anything:
 
 ```bash
-nix shell github:<owner>/coder-nix-devenv#terraform -c terraform version
+nix shell github:haroun-mj-ai/coder-nix-devenv#terraform -c terraform version
 ```
 
 ## What's included
@@ -99,7 +99,7 @@ To avoid typing `--impure` forever, register this repo as a flake named
 `unfree` and use it as your everyday nixpkgs:
 
 ```bash
-nix registry add unfree github:<owner>/coder-nix-devenv
+nix registry add unfree github:haroun-mj-ai/coder-nix-devenv
 nix profile add unfree#slack    # no --impure, no env var
 ```
 
