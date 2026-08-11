@@ -136,7 +136,17 @@ nix eval nixpkgs#terraform.outPath     # this is the real test
 - `nix profile list` prints a multi-line block per package. Do not pipe it
   through `head` to skim it — you will cut off the inventory partway and think
   the profile is smaller than it is.
-- This repo declares the toolchain, but our Coder template still installs
-  packages imperatively at workspace startup. Until the template is switched
-  over to consume this flake, the two lists can drift — `flake.nix` is the
-  intended source of truth, not whatever a live workspace happens to have.
+- The Coder `NIX` template consumes this flake, pinned by SHA in its
+  Dockerfile's `DEVENV_REV` build arg. Changing the toolchain therefore takes
+  two steps: merge here, then bump `DEVENV_REV` in the template and
+  `coder templates push`. The pin is deliberate — tracking `main` would make
+  the image build non-reproducible, yielding different toolchains depending on
+  when it ran.
+- A running workspace is *not* a reliable picture of the toolchain. Its profile
+  accumulates hand-installed extras and can lag the pinned revision, which is
+  why `scripts/export-packages.sh` reads the flake rather than
+  `nix profile list`.
+- The template's image build re-verifies every tool in this flake, plus asserts
+  that `docker` still resolves to `/usr/bin/docker`. If you add a package here
+  that shadows something the image installs via pacman, that build fails on
+  purpose.
