@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
-# Print the current nix profile as a markdown table.
-#
-# Use this to refresh the package table in README.md after adding or removing
-# tools, instead of editing the table by hand:
+# Print this flake's toolchain as a markdown table, for pasting into README.md.
 #
 #   ./scripts/export-packages.sh
 #
-# Note: `nix profile list` prints a multi-line block per package, so never pipe
-# it through `head` to "preview" it — you will silently truncate the inventory.
+# The data comes from the `toolchain` list in flake.nix (via the toolchainInfo
+# output), NOT from the live `nix profile list`. That is deliberate: a running
+# workspace accumulates hand-installed extras and can lag the flake, so the
+# flake is the source of truth and the profile is not.
 set -euo pipefail
 
-nix profile list \
-  | sed 's/\x1b\[[0-9;]*m//g' \
-  | awk '
-      /^Name:/         { name = $2 }
-      /^Store paths:/  {
-        path = $3
-        sub(/^\/nix\/store\/[a-z0-9]+-/, "", path)
-        # Strip the trailing version to isolate the version string itself.
-        version = path
-        sub(/^.*-/, "", version)
-        if (name != "nix") printf "| `%s` | %s |\n", name, version
-      }
-    ' \
-  | sort
+cd "$(dirname "$0")/.."
+
+system=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+
+nix eval ".#toolchainInfo.${system}" --json \
+  | python3 -c '
+import json, sys
+
+rows = json.load(sys.stdin)
+rows.sort(key=lambda r: r["name"])
+
+print("| Package | Version | License |")
+print("| --- | --- | --- |")
+for r in rows:
+    lic = "unfree" if r["unfree"] else "free"
+    print(f'"'"'| `{r["name"]}` | {r["version"]} | {lic} |'"'"')
+'

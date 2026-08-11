@@ -11,42 +11,49 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          # Required for terraform (BUSL 1.1). Every other package here is free.
+          # Required for terraform (BUSL 1.1) and ngrok. Everything else here is
+          # free-licensed; see the License column in the README table.
           config.allowUnfree = true;
         };
 
-        # The toolchain. Keep this list as the single source of truth —
-        # scripts/export-packages.sh regenerates the README table from it.
-        toolchain = with pkgs; [
-          # Languages & package managers
-          nodejs_24
-          python311
-          poetry
+        # THE source of truth for the toolchain.
+        #
+        # Keyed by nixpkgs attribute name so the README table can show the exact
+        # name you would pass to `nix profile add` — `nodejs_22`, not `nodejs`.
+        # Add a package here and nowhere else, then run
+        # ./scripts/export-packages.sh to refresh the README.
+        toolchainAttrs = {
+          # Languages & package managers.
+          #
+          # nodejs_22 is deliberate: it matches the frontend's production
+          # Dockerfile and what CI builds against. Do not bump it just to keep
+          # pace with nixpkgs — pin an older nixpkgs revision if you need an
+          # older Node, and change this only when production moves.
+          inherit (pkgs) nodejs_22 python311 poetry;
 
           # Cloud, infra & secrets
-          google-cloud-sdk
-          terraform
-          sops
+          inherit (pkgs) google-cloud-sdk terraform sops coder;
 
           # Containers
-          docker
-          docker-compose
-          lazydocker
+          #
+          # docker and docker-compose are intentionally absent. The workspace
+          # image installs them via pacman so the `docker compose` plugin lands
+          # on the path `docker` already searches, and .nix-profile/bin comes
+          # first on PATH — a Nix docker would shadow pacman's and break the
+          # plugin. lazydocker has no such constraint.
+          inherit (pkgs) lazydocker;
 
           # Datastores
-          mongosh
-          redis
+          inherit (pkgs) mongosh redis;
 
           # Platform CLIs & tunneling
-          railway
-          stripe-cli
-          ngrok
+          inherit (pkgs) railway stripe-cli ngrok;
 
           # Core dev tooling
-          git
-          gh
-          ripgrep
-        ];
+          inherit (pkgs) git gh ripgrep;
+        };
+
+        toolchain = builtins.attrValues toolchainAttrs;
       in
       {
         devShells.default = pkgs.mkShell {
@@ -71,5 +78,16 @@
         # unfree included, without needing --impure:
         #   nix shell github:haroun-mj-ai/coder-nix-devenv#terraform
         legacyPackages = pkgs;
+
+        # Machine-readable inventory, consumed by scripts/export-packages.sh to
+        # regenerate the README table. Derived from toolchainAttrs so the table
+        # and the actual toolchain can never drift.
+        toolchainInfo = nixpkgs.lib.mapAttrsToList
+          (attr: p: {
+            name = attr;
+            version = p.version or "";
+            unfree = !(p.meta.license.free or true);
+          })
+          toolchainAttrs;
       });
 }
