@@ -1,0 +1,41 @@
+name: bootstrap-smoke
+
+# Cheap guardrails for the nix-free bootstrap: scripts parse and lint, the
+# generated table matches the manifest, a full dry run resolves every row for
+# this arch, and a few pinned tools really install and verify.
+#
+# The manifest targets Ubuntu 26.04's apt versions; GitHub's ubuntu-latest is
+# older, so apt rows are exercised in --dry-run only, never verified here.
+
+on:
+  push:
+    paths: ["bootstrap/**", "scripts/render-tool-sources.py", "docs/TOOL-SOURCES.md", ".github/workflows/bootstrap-smoke.yml"]
+  pull_request:
+    paths: ["bootstrap/**", "scripts/render-tool-sources.py", "docs/TOOL-SOURCES.md", ".github/workflows/bootstrap-smoke.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax and lint
+        run: |
+          for f in bootstrap/*.sh; do bash -n "$f"; done
+          shellcheck -x bootstrap/*.sh
+
+      - name: Generated table is current
+        run: python3 scripts/render-tool-sources.py --check
+
+      - name: Dry run, every layer
+        run: ./bootstrap/install.sh --dry-run --layer all --prefix "$RUNNER_TEMP/prefix"
+
+      - name: Install a few pinned tools for real
+        run: ./bootstrap/install.sh --prefix "$RUNNER_TEMP/prefix" --cache "$RUNNER_TEMP/cache" --only nodejs_22 --only ripgrep --only gh --only poetry
+
+      - name: Verify them
+        run: ./bootstrap/install.sh --verify-only --prefix "$RUNNER_TEMP/prefix" --only nodejs_22 --only ripgrep --only gh --only python311 --only poetry
